@@ -6,7 +6,7 @@
 
 b3BodyId Box3DAreaImpl3D::_create_body_id(b3WorldId p_world_id) {
 	b3BodyDef def = b3DefaultBodyDef();
-	const b3Transform t = godot_to_b3_transform(get_transform());
+	const b3WorldTransform t = godot_to_b3_world_transform(get_transform());
 	def.type = b3_kinematicBody;
 	def.position = t.p;
 	def.rotation = t.q;

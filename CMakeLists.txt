@@ -12,6 +12,9 @@ endif()
 # BOX3D_DOUBLE_PRECISION is defined unconditionally, so it must still be forced OFF before
 # the add_subdirectory() call to match Godot's single-precision default build.
 set(BOX3D_DOUBLE_PRECISION OFF CACHE BOOL "" FORCE)
+if(FLOAT_PRECISION STREQUAL "double")
+	set(BOX3D_DOUBLE_PRECISION ON CACHE BOOL "" FORCE)
+endif()
 set(BOX3D_SAMPLES OFF CACHE BOOL "" FORCE)
 set(BOX3D_BENCHMARKS OFF CACHE BOOL "" FORCE)
 set(BOX3D_DOCS OFF CACHE BOOL "" FORCE)
@@ -36,6 +39,10 @@ target_include_directories(godot-box3d PRIVATE
 target_precompile_headers(godot-box3d PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/precompiled.hpp")
 
 target_link_libraries(godot-box3d PRIVATE box3d::box3d godot-cpp)
+
+if(FLOAT_PRECISION STREQUAL "double")
+	target_compile_definitions(godot-box3d PRIVATE REAL_T_IS_DOUBLE)
+endif()
 
 target_compile_features(godot-box3d PRIVATE cxx_std_17)
 

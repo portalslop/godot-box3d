@@ -37,7 +37,7 @@ b3BodyType to_box3d_body_type(PhysicsServer3D::BodyMode p_mode) {
 
 b3BodyId Box3DBodyImpl3D::_create_body_id(b3WorldId p_world_id) {
 	b3BodyDef def = b3DefaultBodyDef();
-	const b3Transform t = godot_to_b3_transform(get_transform());
+	const b3WorldTransform t = godot_to_b3_world_transform(get_transform());
 	def.type = to_box3d_body_type(mode);
 	def.position = t.p;
 	def.rotation = t.q;
@@ -318,7 +318,7 @@ void Box3DBodyImpl3D::apply_impulse(const Vector3& p_impulse, const Vector3& p_p
 	if (has_body_id()) {
 		// p_position is an offset from the body origin in global coordinates, not a local point.
 		const Vector3 world_point = get_transform().origin + p_position;
-		b3Body_ApplyLinearImpulse(body_id, godot_to_b3(p_impulse), godot_to_b3(world_point), true);
+		b3Body_ApplyLinearImpulse(body_id, godot_to_b3(p_impulse), godot_to_b3_pos(world_point), true);
 	}
 }
 
@@ -391,7 +391,7 @@ void Box3DBodyImpl3D::refresh_contacts() {
 	contact_pairs.resize(pair_capacity);
 	const int pair_count = b3Body_GetContactData(body_id, contact_pairs.ptr(), pair_capacity);
 
-	const b3Vec3 self_center = b3Body_GetWorldCenter(body_id);
+	const b3Pos self_center = b3Body_GetWorldCenter(body_id);
 
 	for (int i = 0; i < pair_count && (int32_t)contacts.size() < max_contacts_reported; i++) {
 		const b3ContactData& pair = contact_pairs[i];
@@ -409,7 +409,7 @@ void Box3DBodyImpl3D::refresh_contacts() {
 		auto* other = dynamic_cast<Box3DBodyImpl3D*>(
 				static_cast<Box3DShapedObjectImpl3D*>(b3Body_GetUserData(other_id)));
 
-		const b3Vec3 other_center = b3Body_GetWorldCenter(other_id);
+		const b3Pos other_center = b3Body_GetWorldCenter(other_id);
 
 		for (int m = 0; m < pair.manifoldCount && (int32_t)contacts.size() < max_contacts_reported; m++) {
 			const b3Manifold& manifold = pair.manifolds[m];
@@ -422,8 +422,8 @@ void Box3DBodyImpl3D::refresh_contacts() {
 				const b3ManifoldPoint& point = manifold.points[p];
 
 				// Anchors are relative to each body's center of mass.
-				const b3Vec3 self_point = b3Add(self_center, self_is_a ? point.anchorA : point.anchorB);
-				const b3Vec3 other_point = b3Add(other_center, self_is_a ? point.anchorB : point.anchorA);
+				const b3Pos self_point = b3OffsetPos(self_center, self_is_a ? point.anchorA : point.anchorB);
+				const b3Pos other_point = b3OffsetPos(other_center, self_is_a ? point.anchorB : point.anchorA);
 
 				Box3DContactPoint3D contact;
 				contact.local_position = b3_to_godot(self_point);

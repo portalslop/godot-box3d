@@ -192,7 +192,7 @@ Transform3D Box3DShapedObjectImpl3D::get_transform() const {
 void Box3DShapedObjectImpl3D::set_transform(const Transform3D& p_transform) {
 	cached_transform = p_transform;
 	if (has_body_id()) {
-		const b3Transform t = godot_to_b3_transform(p_transform);
+		const b3WorldTransform t = godot_to_b3_world_transform(p_transform);
 		b3Body_SetTransform(body_id, t.p, t.q);
 	}
 }

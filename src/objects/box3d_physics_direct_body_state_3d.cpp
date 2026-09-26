@@ -100,7 +100,7 @@ Vector3 Box3DPhysicsDirectBodyState3D::_get_velocity_at_local_position(const Vec
 		return Vector3();
 	}
 	const Vector3 world_point = body->get_transform().xform(p_local_position);
-	return b3_to_godot(b3Body_GetWorldPointVelocity(body->get_body_id(), godot_to_b3(world_point)));
+	return b3_to_godot(b3Body_GetWorldPointVelocity(body->get_body_id(), godot_to_b3_pos(world_point)));
 }
 
 void Box3DPhysicsDirectBodyState3D::_apply_central_impulse(const Vector3& p_impulse) {

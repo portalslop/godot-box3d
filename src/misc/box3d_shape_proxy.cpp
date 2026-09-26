@@ -16,11 +16,13 @@ Box3DShapeProxy3D::Box3DShapeProxy3D(const Box3DShapeImpl3D* p_shape, const Tran
 		return;
 	}
 
+	origin = godot_to_b3_pos(p_transform.origin);
+
 	switch (p_shape->get_type()) {
 		case PhysicsServer3D::SHAPE_SPHERE: {
 			const auto* sphere = static_cast<const Box3DSphereShapeImpl3D*>(p_shape);
 			points.resize(1);
-			points[0] = godot_to_b3(p_transform.origin);
+			points[0] = b3Vec3_zero;
 			proxy.points = points.ptr();
 			proxy.count = 1;
 			proxy.radius = (float)sphere->get_radius();
@@ -33,8 +35,8 @@ Box3DShapeProxy3D::Box3DShapeProxy3D(const Box3DShapeImpl3D* p_shape, const Tran
 			const float radius = (float)capsule->get_radius();
 			const float half_seg = MAX(0.0f, (float)capsule->get_height() * 0.5f - radius);
 			points.resize(2);
-			points[0] = godot_to_b3(p_transform.xform(Vector3(0, half_seg, 0)));
-			points[1] = godot_to_b3(p_transform.xform(Vector3(0, -half_seg, 0)));
+			points[0] = godot_to_b3(p_transform.basis.xform(Vector3(0, half_seg, 0)));
+			points[1] = godot_to_b3(p_transform.basis.xform(Vector3(0, -half_seg, 0)));
 			proxy.points = points.ptr();
 			proxy.count = 2;
 			proxy.radius = radius;
@@ -51,7 +53,7 @@ Box3DShapeProxy3D::Box3DShapeProxy3D(const Box3DShapeImpl3D* p_shape, const Tran
 				for (int sy = -1; sy <= 1; sy += 2) {
 					for (int sz = -1; sz <= 1; sz += 2) {
 						const Vector3 corner(half.x * sx, half.y * sy, half.z * sz);
-						points[i++] = godot_to_b3(p_transform.xform(corner));
+						points[i++] = godot_to_b3(p_transform.basis.xform(corner));
 					}
 				}
 			}
@@ -73,8 +75,8 @@ Box3DShapeProxy3D::Box3DShapeProxy3D(const Box3DShapeImpl3D* p_shape, const Tran
 				const real_t angle = Math_TAU * (real_t)i / (real_t)sides;
 				const real_t x = radius * Math::cos(angle);
 				const real_t z = radius * Math::sin(angle);
-				points[2 * i + 0] = godot_to_b3(p_transform.xform(Vector3(x, -half_height, z)));
-				points[2 * i + 1] = godot_to_b3(p_transform.xform(Vector3(x, half_height, z)));
+				points[2 * i + 0] = godot_to_b3(p_transform.basis.xform(Vector3(x, -half_height, z)));
+				points[2 * i + 1] = godot_to_b3(p_transform.basis.xform(Vector3(x, half_height, z)));
 			}
 			proxy.points = points.ptr();
 			proxy.count = 2 * sides;
@@ -96,7 +98,7 @@ Box3DShapeProxy3D::Box3DShapeProxy3D(const Box3DShapeImpl3D* p_shape, const Tran
 			}
 			points.resize(count);
 			for (int i = 0; i < count; i++) {
-				points[i] = godot_to_b3(p_transform.xform(b3_to_godot(hull_points[i])));
+				points[i] = godot_to_b3(p_transform.basis.xform(b3_to_godot(hull_points[i])));
 			}
 			proxy.points = points.ptr();
 			proxy.count = count;

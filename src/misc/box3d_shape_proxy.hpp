@@ -23,8 +23,11 @@ public:
 
 	const b3ShapeProxy& get_proxy() const { return proxy; }
 
+	const b3Pos& get_origin() const { return origin; }
+
 private:
 	LocalVector<b3Vec3> points;
 	b3ShapeProxy proxy{};
+	b3Pos origin{};
 	bool supported = false;
 };

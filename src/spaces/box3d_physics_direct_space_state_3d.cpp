@@ -63,6 +63,7 @@ bool overlap_result_fcn(b3ShapeId p_shape_id, void* p_context) {
 struct CollideShapeContext {
 	const Box3DQueryFilter3D* filter = nullptr;
 	const b3ShapeProxy* query_proxy = nullptr;
+	b3Pos query_origin{};
 	Vector3* results = nullptr;
 	int32_t max_results = 0;
 	int32_t count = 0;
@@ -97,7 +98,7 @@ bool collide_shape_result_fcn(b3ShapeId p_shape_id, void* p_context) {
 		b3DistanceInput input{};
 		input.proxyA = *ctx->query_proxy;
 		input.proxyB = other_proxy.get_proxy();
-		input.transform = b3Transform_identity;
+		input.transform = {b3SubPos(other_proxy.get_origin(), ctx->query_origin), b3Quat_identity};
 		input.useRadii = true;
 
 		b3SimplexCache cache{};
@@ -105,8 +106,8 @@ bool collide_shape_result_fcn(b3ShapeId p_shape_id, void* p_context) {
 
 		// GJK cannot recover penetration depth, so an overlapping pair reports its witness
 		// point for both sides rather than a fabricated depth.
-		ctx->results[ctx->count * 2 + 0] = b3_to_godot(output.pointA);
-		ctx->results[ctx->count * 2 + 1] = b3_to_godot(output.pointB);
+		ctx->results[ctx->count * 2 + 0] = b3_to_godot(ctx->query_origin) + b3_to_godot(output.pointA);
+		ctx->results[ctx->count * 2 + 1] = b3_to_godot(ctx->query_origin) + b3_to_godot(output.pointB);
 		ctx->count++;
 		return true;
 	}
@@ -161,7 +162,7 @@ bool Box3DPhysicsDirectSpaceState3D::_intersect_ray(
 	context.filter = &filter;
 	context.hit_from_inside = p_hit_from_inside;
 
-	const b3Vec3 origin = godot_to_b3(p_from);
+	const b3Pos origin = godot_to_b3_pos(p_from);
 	const b3Vec3 translation = godot_to_b3(p_to - p_from);
 
 	b3World_CastRay(space->get_world_id(), origin, translation, filter.filter, cast_result_fcn, &context);
@@ -196,7 +197,7 @@ int32_t Box3DPhysicsDirectSpaceState3D::_intersect_point(
 	Box3DQueryFilter3D filter(p_collision_mask, p_collide_with_bodies, p_collide_with_areas);
 	filter.direct_state = this;
 
-	const b3Vec3 point = godot_to_b3(p_position);
+	const b3Vec3 point = b3Vec3_zero;
 	b3ShapeProxy proxy;
 	proxy.points = &point;
 	proxy.count = 1;
@@ -207,7 +208,7 @@ int32_t Box3DPhysicsDirectSpaceState3D::_intersect_point(
 	context.results = p_results;
 	context.max_results = p_max_results;
 
-	b3World_OverlapShape(space->get_world_id(), b3Vec3_zero, &proxy, filter.filter, overlap_result_fcn, &context);
+	b3World_OverlapShape(space->get_world_id(), godot_to_b3_pos(p_position), &proxy, filter.filter, overlap_result_fcn, &context);
 
 	return context.count;
 }
@@ -240,7 +241,7 @@ int32_t Box3DPhysicsDirectSpaceState3D::_intersect_shape(
 	context.results = p_results;
 	context.max_results = p_max_results;
 
-	b3World_OverlapShape(space->get_world_id(), b3Vec3_zero, &shape_proxy.get_proxy(), filter.filter, overlap_result_fcn, &context);
+	b3World_OverlapShape(space->get_world_id(), shape_proxy.get_origin(), &shape_proxy.get_proxy(), filter.filter, overlap_result_fcn, &context);
 
 	return context.count;
 }
@@ -274,7 +275,7 @@ bool Box3DPhysicsDirectSpaceState3D::_cast_motion(
 	RayContext context;
 	context.filter = &filter;
 
-	b3World_CastShape(space->get_world_id(), b3Vec3_zero, &shape_proxy.get_proxy(), godot_to_b3(p_motion), filter.filter, cast_result_fcn, &context);
+	b3World_CastShape(space->get_world_id(), shape_proxy.get_origin(), &shape_proxy.get_proxy(), godot_to_b3(p_motion), filter.filter, cast_result_fcn, &context);
 
 	if (!context.has_hit) {
 		*p_closest_safe = 1.0;
@@ -318,11 +319,12 @@ bool Box3DPhysicsDirectSpaceState3D::_collide_shape(
 	CollideShapeContext context;
 	context.filter = &filter;
 	context.query_proxy = &shape_proxy.get_proxy();
+	context.query_origin = shape_proxy.get_origin();
 	context.results = static_cast<Vector3*>(p_results);
 	context.max_results = p_max_results;
 
 	b3World_OverlapShape(
-			space->get_world_id(), b3Vec3_zero, &shape_proxy.get_proxy(), filter.filter, collide_shape_result_fcn, &context);
+			space->get_world_id(), shape_proxy.get_origin(), &shape_proxy.get_proxy(), filter.filter, collide_shape_result_fcn, &context);
 
 	*p_result_count = context.count;
 	return context.count > 0;
@@ -353,7 +355,7 @@ bool Box3DPhysicsDirectSpaceState3D::_rest_info(
 	RayContext context;
 	context.filter = &filter;
 
-	b3World_CastShape(space->get_world_id(), b3Vec3_zero, &shape_proxy.get_proxy(), godot_to_b3(p_motion), filter.filter, cast_result_fcn, &context);
+	b3World_CastShape(space->get_world_id(), shape_proxy.get_origin(), &shape_proxy.get_proxy(), godot_to_b3(p_motion), filter.filter, cast_result_fcn, &context);
 
 	if (!context.has_hit) {
 		return false;
@@ -437,7 +439,7 @@ bool Box3DPhysicsDirectSpaceState3D::test_body_motion(
 	RayContext context;
 	context.filter = &filter;
 
-	b3World_CastShape(space->get_world_id(), b3Vec3_zero, &shape_proxy.get_proxy(), godot_to_b3(p_motion), filter.filter, cast_result_fcn, &context);
+	b3World_CastShape(space->get_world_id(), shape_proxy.get_origin(), &shape_proxy.get_proxy(), godot_to_b3(p_motion), filter.filter, cast_result_fcn, &context);
 
 	if (!context.has_hit) {
 		p_result->travel = p_motion;

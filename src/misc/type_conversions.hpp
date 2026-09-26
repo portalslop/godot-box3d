@@ -24,6 +24,10 @@ _FORCE_INLINE_ b3Vec3 godot_to_b3(const Vector3& p_v) {
 	return b3Vec3{p_v.x, p_v.y, p_v.z};
 }
 
+_FORCE_INLINE_ b3Pos godot_to_b3_pos(const Vector3& p_v) {
+	return b3Pos{p_v.x, p_v.y, p_v.z};
+}
+
 _FORCE_INLINE_ Quaternion b3_to_godot(const b3Quat& p_q) {
 	return Quaternion(p_q.v.x, p_q.v.y, p_q.v.z, p_q.s);
 }
@@ -45,6 +49,24 @@ _FORCE_INLINE_ Transform3D b3_to_godot(const b3Transform& p_t) {
 _FORCE_INLINE_ b3Transform godot_to_b3_transform(const Transform3D& p_t) {
 	b3Transform t;
 	t.p = godot_to_b3(p_t.origin);
+	t.q = godot_to_b3(p_t.basis.get_rotation_quaternion());
+	return t;
+}
+
+#ifdef BOX3D_DOUBLE_PRECISION
+_FORCE_INLINE_ Vector3 b3_to_godot(const b3Pos& p_v) {
+	return Vector3(p_v.x, p_v.y, p_v.z);
+}
+
+_FORCE_INLINE_ Transform3D b3_to_godot(const b3WorldTransform& p_t) {
+	const Basis basis(b3_to_godot(p_t.q));
+	return Transform3D(basis, b3_to_godot(p_t.p));
+}
+#endif
+
+_FORCE_INLINE_ b3WorldTransform godot_to_b3_world_transform(const Transform3D& p_t) {
+	b3WorldTransform t;
+	t.p = godot_to_b3_pos(p_t.origin);
 	t.q = godot_to_b3(p_t.basis.get_rotation_quaternion());
 	return t;
 }
