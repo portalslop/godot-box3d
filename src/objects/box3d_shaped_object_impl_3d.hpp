@@ -60,6 +60,10 @@ public:
 	// space, and after body type transitions that need shapes recreated).
 	void rebuild_shapes();
 
+	void set_collision_layer(uint32_t p_layer) override;
+
+	void set_collision_mask(uint32_t p_mask) override;
+
 protected:
 	// Creates the underlying b3BodyId in the given world using the cached construction
 	// state (transform, velocities, ...). Subclasses fill in body-type-specific fields.

@@ -358,3 +358,27 @@ void Box3DShapedObjectImpl3D::_destroy_shape_instance(Box3DShapeInstance3D& p_in
 		p_instance.set_owned_mesh(nullptr);
 	}
 }
+
+void Box3DShapedObjectImpl3D::set_collision_layer(uint32_t p_layer) {
+	if (collision_layer == p_layer) {
+		return;
+	}
+	collision_layer = p_layer;
+	for (auto& instance : shapes) {
+		if (instance.has_shape_id()) {
+			b3Shape_SetFilter(instance.get_shape_id(), godot_to_b3_filter(collision_layer, collision_mask), true);
+		}
+	}
+}
+
+void Box3DShapedObjectImpl3D::set_collision_mask(uint32_t p_mask) {
+	if (collision_mask == p_mask) {
+		return;
+	}
+	collision_mask = p_mask;
+	for (auto& instance : shapes) {
+		if (instance.has_shape_id()) {
+			b3Shape_SetFilter(instance.get_shape_id(), godot_to_b3_filter(collision_layer, collision_mask), true);
+		}
+	}
+}
